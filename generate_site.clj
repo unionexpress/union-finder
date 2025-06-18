@@ -645,7 +645,7 @@
                             <div class=\"contact-item\">
                                 <strong>Τηλέφωνα:</strong>
                                 <div class=\"phone-list\">
-                                    ${union.phones.map(phone => `<span>${phone}</span>`).join('')}
+                                    ${union.phones.map(phone => `<a href=\"tel:${phone}\" class=\"contact-link\">${phone}</a>`).join('')}
                                 </div>
                             </div>
                         ` : ''}
