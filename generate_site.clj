@@ -518,9 +518,9 @@
     <div class=\"container\">
         <div class=\"header\">
             <a href=\"#\" onclick=\"resetToHome(); return false;\" style=\"text-decoration: none; color: inherit;\">
-                <h1>🏛️ Κατάλογος Σωματείων</h1>
+                <h1>🏛️ Κατάλογος Εργατικών Σωματείων</h1>
             </a>
-            <p>Βρες το εργατικό σωματείο που σου αντιστοιχεί! (Θεσσαλονίκη)</p>
+            <p>Βρες το σωματείο σου!</p>
         </div>
 
         <div class=\"search-section\">
