@@ -53,6 +53,8 @@ FM.
 - ⚖️ Εργασιακά
 - 👥 Κοινωνικά
 
+... και σιγά σιγά θα μπουν κι άλλοι
+
 ## 🔧 Setup & Development
 
 ### Προαπαιτούμενα
@@ -123,10 +125,19 @@ GOOGLE_CLIENT_CERT_URL=cert-url-from-json
 SPREADSHEET_ID=1ABC...XYZ
 ```
 
+Αυτή η πληροφορία χρειάζεται γιατί το script παίρνει τις πληροφορίες για τα
+σωματεία μέσω του Google Sheets API. Αυτή τη στιγμή τα github actions
+χρησιμοποιούν ένα service account που έφτιαξα για τις ανάγκες του project με
+πρόσβαση στο Google Sheets API και ΜΟΝΟ στο spreadsheet με τα σωματεία και τίποτα άλλο.
+
+Για να μπορέσετε επομένως να χρησιμοποιήσετε το script, πρεπει είτε να φτιάξετε
+δικό σας spreadsheet είτε να μου ζητήσετε να σας δώσω πρόσβαση (είτε στο service
+account, είτε στο αρχείο - προτιμότερο το 2ο σενάριο)
+
 ## 📁 Δομή Project
 
 ```
-union-directory/
+union-finder/
 ├── .github/
 │   └── workflows/
 │       └── generate.yml      # GitHub Actions workflow
@@ -184,19 +195,22 @@ union-directory/
 
 ## 📞 Υποστήριξη
 
-- **Issues**: Χρησιμοποίησε το [GitHub Issues](https://github.com/yourusername/union-directory/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/union-directory/discussions)
-- **Email**: your.email@example.com
+- **Issues**: Χρησιμοποίησε το [GitHub Issues](https://github.com/unionexpress/union-finder/issues)
+
+Αν με ξέρετε ρωτήστε ελεύθερα και προσωπικά
 
 ## 🙏 Acknowledgments
 
 - **Babashka Community** για το εκπληκτικό tool
-- **Google Sheets** για την εύκολη data management
-- **GitHub Pages** για το free hosting
+- **Google Sheets** για το εύκολο API
+- **GitHub Pages** για τη δωρεάν φιλοξενία της σελίδας μας
+- **Claude** για τη βοήθεια με το prototype και το troubleshooting στη συνέχεια
 - **Όλα τα σωματεία** που συμμετέχουν στον κατάλογο
 
 ---
 
 **Made with ❤️ for the Greek labor movement**
+
+**Αφιερωμένο με αγάπη στην ελληνική εργατική τάξη**
 
 ![QR Code](files/qrcode.svg)
