@@ -110,16 +110,25 @@
       (str/replace #"[ώ]" "ω")
       str/trim))
 
+(defn sha256-hash [name]
+  "Generate short, collision-resistant permalink"
+  (let [digest     (java.security.MessageDigest/getInstance "SHA-256")
+        hash-bytes (.digest digest (.getBytes name "UTF-8"))]
+    hash-bytes))
+
+(defn bytes-to-hex [bytes]
+  "Convert bytes to hex string"
+  (apply str (map #(format "%02x" %) bytes)))
+
 (defn generate-permalink [name]
   "Generate permalink from union name"
   (str "/somateio-" (normalize-string name) "/"))
 
 (defn generate-id [name]
-  "Generate unique ID from union name"
-  (let [normalized (normalize-string name)]
-    (if (str/blank? normalized)
-      (str "union-" (hash name))
-      normalized)))
+  "Generate unique ID from union name using SHA-256"
+  (let [hash-bytes (sha256-hash name)
+        hash-hex (bytes-to-hex hash-bytes)]
+    (subs hash-hex 0 12)))
 
 (defn parse-phone [phone-str]
   "Parse phone number"
@@ -196,7 +205,7 @@
                                "labor" "Εργασιακά"
                                "social" "Κοινωνικά"
                                "other" "Άλλοι"} sector)]
-    {:id (generate-id short-name)
+    {:id (generate-id (str short-name " " full-name))
      :short-name short-name
      :full-name full-name
      :name (if (str/blank? full-name) short-name full-name)
