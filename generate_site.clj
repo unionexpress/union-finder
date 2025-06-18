@@ -832,6 +832,15 @@
                 window.location.hash = unionId;
                 document.getElementById('searchInput').value = union.name;
                 document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+
+                // Track union view with GoatCounter
+                if (window.goatcounter && window.goatcounter.count) {
+                    window.goatcounter.count({
+                        path: `/union/${unionId}`,
+                        title: `Union: ${union.name}`,
+                        event: true
+                    });
+                }
             }
         }
 
@@ -845,6 +854,15 @@
                 setTimeout(() => {
                     badge.textContent = originalText;
                 }, 2000);
+
+                // Track permalink copy with GoatCounter
+                if (window.goatcounter && window.goatcounter.count) {
+                    window.goatcounter.count({
+                        path: '/permalink-copied',
+                        title: 'Permalink Copied',
+                        event: true
+                    });
+                }
             });
         }
 
@@ -873,8 +891,31 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
+        // Track search actions
+        function trackSearch(query) {
+            if (window.goatcounter && window.goatcounter.count && query.trim()) {
+                window.goatcounter.count({
+                    path: '/search',
+                    title: `Search: ${query}`,
+                    event: true
+                });
+            }
+        }
+
+        // Enhanced search function with tracking
+        function performSearchWithTracking() {
+            const query = document.getElementById('searchInput').value;
+            performSearch();
+
+            // Track search after a delay to avoid too many events
+            clearTimeout(window.searchTimeout);
+            window.searchTimeout = setTimeout(() => {
+                trackSearch(query);
+            }, 1000);
+        }
+
         // Event listeners
-        document.getElementById('searchInput').addEventListener('input', performSearch);
+        document.getElementById('searchInput').addEventListener('input', performSearchWithTracking);
         document.getElementById('sector').addEventListener('change', performSearch);
         document.getElementById('type').addEventListener('change', performSearch);
 
@@ -891,6 +932,10 @@
             showResults(unionData);
         }
     </script>
+
+    <!-- GoatCounter Analytics -->
+    <script data-goatcounter=\"https://unionexpress.goatcounter.com/count\"
+            async src=\"//gc.zgo.at/count.js\"></script>
 </body>
 </html>")
 
@@ -903,7 +948,7 @@
   "Read and parse CSV file"
   (with-open [reader (io/reader filename)]
     (doall
-      (csv/read-csv reader))))
+     (csv/read-csv reader))))
 
 (defn csv-to-maps [csv-data]
   "Convert CSV data to maps using first row as headers"
