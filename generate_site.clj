@@ -2,7 +2,84 @@
 
 (require '[clojure.data.csv :as csv]
          '[clojure.java.io :as io]
-         '[clojure.string :as str])
+         '[clojure.string :as str]
+         '[cheshire.core :as json]
+         '[babashka.http-client :as http])
+
+(defn base64-url-encode [data]
+  "Base64 URL encode (for JWT)"
+  (-> (java.util.Base64/getUrlEncoder)
+      (.withoutPadding)
+      (.encodeToString data)))
+
+(defn get-google-access-token [client-email private-key]
+  (let [now (quot (System/currentTimeMillis) 1000)
+
+        ;; JWT Header
+        header {:alg "RS256" :typ "JWT"}
+        header-json (json/generate-string header)
+        header-b64 (base64-url-encode (.getBytes header-json "UTF-8"))
+
+        ;; JWT Payload
+        payload {:iss client-email
+                 :scope "https://www.googleapis.com/auth/spreadsheets.readonly"
+                 :aud "https://oauth2.googleapis.com/token"
+                 :exp (+ now 3600)
+                 :iat now}
+        payload-json (json/generate-string payload)
+        payload-b64 (base64-url-encode (.getBytes payload-json "UTF-8"))
+
+        ;; JWT unsigned token
+        unsigned-token (str header-b64 "." payload-b64)
+
+        ;; Parse private key
+        private-key-clean (-> private-key
+                              (str/replace "-----BEGIN PRIVATE KEY-----" "")
+                              (str/replace "-----END PRIVATE KEY-----" "")
+                              (str/replace #"\\n" "\n")
+                              (str/replace #"\n" "")
+                              (str/replace #"\s" "")
+                              str/trim)
+
+        key-bytes (.decode (java.util.Base64/getDecoder) private-key-clean)
+        key-spec (java.security.spec.PKCS8EncodedKeySpec. key-bytes)
+        private-key-obj (.generatePrivate (java.security.KeyFactory/getInstance "RSA") key-spec)
+
+        ;; Sign the token
+        signature-obj (java.security.Signature/getInstance "SHA256withRSA")
+        _ (.initSign signature-obj private-key-obj)
+        _ (.update signature-obj (.getBytes unsigned-token "UTF-8"))
+        signature-bytes (.sign signature-obj)
+        signature-b64 (base64-url-encode signature-bytes)
+
+        ;; Complete JWT
+        jwt (str unsigned-token "." signature-b64)
+
+        ;; Request access token
+        response (http/post "https://oauth2.googleapis.com/token"
+                           {:form-params {:grant_type "urn:ietf:params:oauth:grant-type:jwt-bearer"
+                                          :assertion jwt}
+                            :content-type :x-www-form-urlencoded})]
+
+    (if (= 200 (:status response))
+      (-> response :body (json/parse-string true) :access_token)
+      (do
+        (println "Error in token response:" (:status response))
+        (println "Response body:" (:body response))
+        (throw (Exception. "Failed to get access token"))))))
+
+(defn read-google-sheet [spreadsheet-id sheet-name creds-file]
+  (let [creds (json/parse-string (slurp creds-file) true)
+        token (get-google-access-token (:client_email creds) (:private_key creds))
+        range-param (str sheet-name "!A:Z")
+        url (str "https://sheets.googleapis.com/v4/spreadsheets/"
+                 spreadsheet-id
+                 "/values/"
+                 (java.net.URLEncoder/encode range-param "UTF-8"))
+        response (http/get url {:headers {"Authorization" (str "Bearer " token)}})]
+
+    (when (= 200 (:status response))
+      (-> response :body (json/parse-string true) :values))))
 
 ;; Helper functions
 (defn normalize-string [s]
@@ -41,7 +118,7 @@
   "Generate unique ID from union name"
   (let [normalized (normalize-string name)]
     (if (str/blank? normalized)
-      (str "union-" (hash name))  ; Use hash instead of random
+      (str "union-" (hash name))
       normalized)))
 
 (defn parse-phone [phone-str]
@@ -826,33 +903,34 @@
     (map #(zipmap headers %) rows)))
 
 (defn -main [& args]
-  (let [csv-file (or (first args) "unions.csv")
-        output-file (or (second args) "index.html")]
+  (let [creds-file (or (first args) "credentials.json")
+        spreadsheet-id (or (second args) "YOUR_SPREADSHEET_ID")
+        sheet-name (or (nth args 2) "Sheet1")
+        output-file (or (nth args 3) "index.html")]
 
-    (println "🏛️  Union Site Generator")
-    (println "=======================")
-    (println (str "📖 Reading CSV file: " csv-file))
-
+    (println "🔐 Authenticating with Google Sheets API...")
     (try
-      (let [csv-data (read-csv-file csv-file)
-            raw-unions (csv-to-maps csv-data)
+      (let [sheet-data (read-google-sheet spreadsheet-id sheet-name creds-file)
+            headers (first sheet-data)
+            rows (rest sheet-data)
+            raw-unions (map #(zipmap headers %) rows)
             processed-unions (map process-union-entry raw-unions)
             html-content (generate-html processed-unions)]
 
-        (println (str "✅ Processed " (count processed-unions) " unions"))
+        (println (str "✅ Processed " (count processed-unions) " unions from Google Sheet"))
         (println "📊 Union breakdown:")
         (doseq [[sector count] (frequencies (map :sector-name processed-unions))]
           (println (str "   " sector ": " count)))
 
         (println (str "💾 Writing HTML file: " output-file))
         (spit output-file html-content)
-
         (println "🎉 Site generated successfully!")
         (println (str "📂 Open " output-file " in your browser"))
         (println "🚀 Ready for GitHub Pages!"))
 
       (catch Exception e
         (println (str "❌ Error: " (.getMessage e)))
+        (.printStackTrace e)
         (System/exit 1)))))
 
 (when (= *file* (System/getProperty "babashka.file"))
