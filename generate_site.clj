@@ -56,6 +56,14 @@
   (when-not (str/blank? phone-str)
     (map parse-phone (str/split phone-str #","))))
 
+(defn parse-emails [s]
+  "Parse comma-separated emails"
+  (when-not (str/blank? s)
+    (->> (str/split s #",")
+         (map str/trim)
+         (filter #(not (str/blank? %)))
+         (vec))))
+
 (defn clean-url [url]
   "Clean and validate URL"
   (when-not (str/blank? url)
@@ -74,7 +82,7 @@
         description       (get row "Περιγραφή")
         registration-form (clean-url (get row "Φόρμα εγγραφής"))
         phones            (parse-phones (get row "Τηλέφωνα"))
-        email             (get row "Εmail")
+        emails            (parse-emails (get row "Εmail"))
         instagram         (clean-url (get row "Instagram"))
         other-contact     (get row "Άλλοι τρόποι επικοινωνίας")
         sector            (let [low (-> full-name normalize-string-gr str/lower-case)]
@@ -121,7 +129,7 @@
      :description (when-not (str/blank? description) description)
      :registration-form registration-form
      :phones phones
-     :email (when-not (str/blank? email) email)
+     :emails emails
      :instagram instagram
      :other-contact (when-not (str/blank? other-contact) other-contact)
      :permalink (generate-permalink short-name)
@@ -159,7 +167,7 @@
                            "description" (:description union)
                            "registrationForm" (:registration-form union)
                            "phones" (vec (:phones union))
-                           "email" (:email union)
+                           "emails" (vec (:emails union))
                            "instagram" (:instagram union)
                            "otherContact" (:other-contact union)
                            "permalink" (:permalink union)})
@@ -438,7 +446,7 @@
             opacity: 0.8;
         }
 
-        .phone-list {
+        .phone-list, .email-list {
             display: flex;
             flex-direction: column;
             gap: 5px;
@@ -641,7 +649,14 @@
                                 </div>
                             </div>
                         ` : ''}
-                        ${union.email ? `<div class=\"contact-item\"><strong>Email:</strong> <a href=\"mailto:${union.email}\" class=\"contact-link\">${union.email}</a></div>` : ''}
+                        ${union.emails && union.emails.length > 0 ? `
+                            <div class=\"contact-item\">
+                                <strong>Email:</strong>
+                                <div class=\"email-list\">
+                                    ${union.emails.map(email => `<a href=\"mailto:${email}\" class=\"contact-link\">${email}</a>`).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
                         ${union.website ? `<div class=\"contact-item\"><strong>Ιστοσελίδα:</strong> <a href=\"${union.website}\" target=\"_blank\" class=\"contact-link\">${union.website}</a></div>` : ''}
                         ${union.otherContact ? `<div class=\"contact-item\"><strong>Άλλοι τρόποι:</strong> <a href=\"${union.otherContact}\" target=\"_blank\" class=\"contact-link\">Δείτε εδώ</a></div>` : ''}
                     </div>
