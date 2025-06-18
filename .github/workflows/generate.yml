@@ -1,0 +1,69 @@
+name: Generate Union Directory
+
+on:
+  schedule:
+    # Τρέχει κάθε μέρα στις 6:00 UTC (9:00 ελληνική ώρα)
+    - cron: '0 6 * * *'
+  workflow_dispatch: # Επιτρέπει manual run
+  push:
+    branches: [ main ]
+    paths:
+      - 'generate_site.clj'
+      - '.github/workflows/**'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  generate-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Babashka
+      run: |
+        bash < <(curl -s https://raw.githubusercontent.com/babashka/babashka/master/install)
+
+    - name: Create credentials file
+      run: |
+        cat > credentials.json << EOF
+        {
+          "type": "service_account",
+          "project_id": "${{ secrets.GOOGLE_PROJECT_ID }}",
+          "private_key_id": "${{ secrets.GOOGLE_PRIVATE_KEY_ID }}",
+          "private_key": "${{ secrets.GOOGLE_PRIVATE_KEY }}",
+          "client_email": "${{ secrets.GOOGLE_CLIENT_EMAIL }}",
+          "client_id": "${{ secrets.GOOGLE_CLIENT_ID }}",
+          "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+          "token_uri": "https://oauth2.googleapis.com/token",
+          "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+          "client_x509_cert_url": "${{ secrets.GOOGLE_CLIENT_CERT_URL }}"
+        }
+        EOF
+
+    - name: Generate site
+      run: |
+        bb generate_site.clj credentials.json "${{ secrets.SPREADSHEET_ID }}" "Κατάλογος" index.html
+
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: '.'
+
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
