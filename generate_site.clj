@@ -121,8 +121,11 @@
   (apply str (map #(format "%02x" %) bytes)))
 
 (defn generate-permalink [name]
-  "Generate permalink from union name"
-  (str "/somateio-" (normalize-string name) "/"))
+  "Generate permalink from union name using SHA-256"
+  (let [hash-bytes (sha256-hash name)
+        hash-hex (bytes-to-hex hash-bytes)
+        short-hash (subs hash-hex 0 8)]
+    (str "/union-" short-hash "/")))
 
 (defn generate-id [name]
   "Generate unique ID from union name using SHA-256"
@@ -302,6 +305,37 @@
         .header p {
             font-size: 1.2rem;
             opacity: 0.9;
+            margin-bottom: 15px;
+        }
+
+        .header-credits {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.8);
+            text-align: center;
+            margin-bottom: 0;
+        }
+
+        .header-credits a {
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .header-credits a:hover {
+            color: white;
+            border-bottom-color: white;
+        }
+
+        @media (max-width: 768px) {
+            .support-links {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-bar {
+                flex-direction: column;
+                text-align: center;
+            }
         }
 
         .search-section {
@@ -606,6 +640,55 @@
                 margin-bottom: 5px;
             }
         }
+
+        .footer {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .footer-link {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .footer-link:hover {
+            color: #764ba2;
+            transform: translateY(-1px);
+        }
+
+        .footer-stats {
+            font-size: 0.85rem;
+            color: #666;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        @media (max-width: 768px) {
+            .footer-links {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -615,6 +698,10 @@
                 <h1>🏛️ Κατάλογος Εργατικών Σωματείων</h1>
             </a>
             <p>Βρες το σωματείο σου!</p>
+            <p class=\"header-credits\">
+                Χτίστηκε με <a href=\"https://github.com/unionexpress/union-finder\" target=\"_blank\">ανοιχτό λογισμικό</a> •
+                Υποστηρίζεται από τον <a href=\"https://www.902.gr/904/stream.php\" target=\"_blank\">904 Αριστερά στα FM</a>
+            </p>
         </div>
 
         <div class=\"search-section\">
@@ -637,6 +724,7 @@
                     <option value=\"\">-- Όλοι οι Τύποι --</option>
                     <option value=\"Κλαδικό\">Κλαδικό Σωματείο</option>
                     <option value=\"Επιχειρησιακό\">Επιχειρησιακό Σωματείο</option>
+                    <option value=\"Ομοσπονδία\">Ομοσπονδία</option>
                 </select>
             </div>
 
@@ -649,6 +737,28 @@
 
         <div class=\"url-display\" id=\"urlDisplay\" style=\"display: none;\">
             <strong>Permalink:</strong> <span id=\"currentUrl\"></span>
+        </div>
+
+        <div class=\"footer\">
+            <div class=\"footer-links\">
+                <a href=\"https://github.com/unionexpress/union-finder/issues\" target=\"_blank\" class=\"footer-link\">
+                    🐛 Πρόβλημα;
+                </a>
+                <a href=\"mailto:904aristerafm+unionexpress@gmail.com\" class=\"footer-link\">
+                    ✉️ Επικοινωνία
+                </a>
+                <a href=\"https://forms.gle/dUbazrWErCZCgSP86\" target=\"_blank\" class=\"footer-link\">
+                    ➕ Προσθήκη Σωματείου
+                </a>
+                <a href=\"https://unionexpress.goatcounter.com\" target=\"_blank\" class=\"footer-link\">
+                    📊 Στατιστικά
+                </a>
+            </div>
+            <div class=\"footer-stats\">
+                <span id=\"totalUnionsFooter\">0</span> σωματεία •
+                <span id=\"totalSectorsFooter\">0</span> κλάδοι •
+                Τελευταία ενημέρωση: <span id=\"lastUpdateFooter\">Σήμερα</span>
+            </div>
         </div>
     </div>
 
@@ -928,8 +1038,29 @@
         // Initialize
         populateFilters();
         checkHashOnLoad();
+        updateStats();
         if (!window.location.hash) {
             showResults(unionData);
+        }
+
+        function updateStats() {
+            const totalUnions = unionData.length;
+            const totalSectors = [...new Set(unionData.map(u => u.sectorName))].length;
+
+            // Set last update date
+            const today = new Date();
+            const options = {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                timeZone: 'Europe/Athens'
+            };
+            const dateStr = today.toLocaleDateString('el-GR', options);
+
+            // Update footer stats
+            document.getElementById('totalUnionsFooter').textContent = totalUnions;
+            document.getElementById('totalSectorsFooter').textContent = totalSectors;
+            document.getElementById('lastUpdateFooter').textContent = dateStr;
         }
     </script>
 
@@ -947,8 +1078,7 @@
 (defn read-csv-file [filename]
   "Read and parse CSV file"
   (with-open [reader (io/reader filename)]
-    (doall
-     (csv/read-csv reader))))
+    (doall (csv/read-csv reader))))
 
 (defn csv-to-maps [csv-data]
   "Convert CSV data to maps using first row as headers"
