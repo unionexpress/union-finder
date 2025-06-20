@@ -700,7 +700,8 @@
             <p>Βρες το σωματείο σου!</p>
             <p class=\"header-credits\">
                 Χτίστηκε με <a href=\"https://github.com/unionexpress/union-finder\" target=\"_blank\">ανοιχτό λογισμικό</a> •
-                Υποστηρίζεται από τον <a href=\"https://www.902.gr/904/stream.php\" target=\"_blank\">904 Αριστερά στα FM</a>
+                Υποστηρίζεται από τον <a href=\"https://www.902.gr/904/stream.php\" target=\"_blank\">904 Αριστερά στα FM</a> •
+                <a href=\"giati-na-organwthw.html\">Γιατί να γραφτώ σε σωματείο;</a>
             </p>
         </div>
 
