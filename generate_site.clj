@@ -751,6 +751,9 @@
                 <a href=\"https://forms.gle/dUbazrWErCZCgSP86\" target=\"_blank\" class=\"footer-link\">
                     ➕ Προσθήκη Σωματείου
                 </a>
+                <a href=\"https://forms.gle/AZhmmiST8HKZzKMt7\" target=\"_blank\" class=\"footer-link\">
+                    🤷 Δεν μου ταιριάζει κανένα σωματείο!
+                </a>
                 <a href=\"https://unionexpress.goatcounter.com\" target=\"_blank\" class=\"footer-link\">
                     📊 Στατιστικά
                 </a>
